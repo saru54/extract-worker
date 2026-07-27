@@ -1,0 +1,16 @@
+[Unit]
+Description=Standalone extraction status API
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/extract-worker
+EnvironmentFile=/opt/extract-worker/.env
+Environment=PYTHONPATH=/opt/extract-worker
+ExecStart=/opt/extract-worker/venv/bin/gunicorn --workers 1 --bind 127.0.0.1:8793 api:app
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
