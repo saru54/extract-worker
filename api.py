@@ -16,6 +16,11 @@ def authorized() -> bool:
     return bool(expected and token and hmac.compare_digest(expected, token))
 
 
+@app.get("/")
+def root():
+    return jsonify(ok=True, service="extract-worker", status="online")
+
+
 @app.get("/healthz")
 def healthz():
     return jsonify(ok=True, service="extract-worker")
