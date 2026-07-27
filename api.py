@@ -3,9 +3,8 @@ from __future__ import annotations
 import hmac
 import os
 
+import requests
 from flask import Flask, jsonify, request
-
-from storage import Store
 
 app = Flask(__name__)
 
@@ -26,8 +25,6 @@ def healthz():
 def job_status(job_id: str):
     if not authorized():
         return jsonify(ok=False, error="unauthorized"), 401
-    job = Store().get(f"pending/{job_id}.json") or Store().get(f"results/{job_id}.json")
-    if not job:
-        return jsonify(ok=False, error="job not found"), 404
-    job.pop("access_token", None)
-    return jsonify(ok=True, job=job)
+    base = os.environ["OPERATOR_INTERNAL_URL"].rstrip("/")
+    response = requests.get(f"{base}/internal/jobs/{job_id}", headers={"Authorization": f"Bearer {os.environ['EXTRACT_INTERNAL_TOKEN']}"}, timeout=30)
+    return (response.text, response.status_code, {"Content-Type": "application/json"})

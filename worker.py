@@ -1,33 +1,28 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 import time
 
+import requests
 from dotenv import load_dotenv
 
 from core.extract_link_service import run_external_extract
-from storage import Store
 
 
 def main() -> None:
     load_dotenv()
-    store = Store()
+    base = os.environ["OPERATOR_INTERNAL_URL"].rstrip("/")
+    headers = {"Authorization": f"Bearer {os.environ['EXTRACT_INTERNAL_TOKEN']}"}
     while True:
-        for key in store.list("pending/"):
-            job = store.get(key)
-            if not job or job.get("status") != "extracting":
-                continue
-            started = float(job.get("worker_started_at") or 0)
-            if started and time.time() - started < float(os.getenv("OPERATOR_JOB_LEASE", "900")):
-                continue
-            job["worker_started_at"] = time.time(); store.put(key, job)
-            result = run_external_extract(email=job.get("email", ""), access_token=job["access_token"], link_type=job.get("channel", "pix"))
-            job.pop("access_token", None)
-            job.update(result); job["status"] = result.get("status", "failed"); job["completed_at"] = time.time(); store.put(key, job)
-            if isinstance(result.get("result"), dict):
-                job.update(result["result"])
-                store.put(key, job)
-            store.event({"event": "extract", "job_id": job["job_id"], "status": job["status"]})
+        try:
+            response = requests.post(f"{base}/internal/claim", headers=headers, timeout=30)
+            payload = response.json() if response.content else {}
+            job = payload.get("job") if response.ok else None
+            if job:
+                result = run_external_extract(email=job.get("email", ""), access_token=job["access_token"], link_type=job.get("channel", "pix"))
+                requests.post(f"{base}/internal/complete", headers=headers, json={"job_id": job["job_id"], "result": result}, timeout=30)
+        except Exception:
+            time.sleep(5)
         time.sleep(float(os.getenv("OPERATOR_WORKER_INTERVAL", "2")))
 
 

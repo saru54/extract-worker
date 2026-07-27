@@ -3,6 +3,8 @@ Description=Standalone extraction status API
 After=network-online.target
 
 [Service]
+User=bluebuffer-scan
+Group=bluebuffer-scan
 WorkingDirectory=/opt/extract-worker
 EnvironmentFile=/opt/extract-worker/.env
 Environment=PYTHONPATH=/opt/extract-worker
