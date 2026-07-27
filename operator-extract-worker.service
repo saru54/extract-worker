@@ -1,0 +1,16 @@
+﻿[Unit]
+Description=Standalone scan link extraction worker
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/extract-worker
+EnvironmentFile=/opt/extract-worker/.env
+Environment=PYTHONPATH=/opt/extract-worker
+ExecStart=/opt/extract-worker/venv/bin/python -m worker
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
